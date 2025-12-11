@@ -31,19 +31,27 @@ pragma solidity 0.8.19;
  * @dev Implements Chainlink VRFv2.5
  */
 
-
-
 contract Raffle {
     /* Errors */
     error Raffle__SendMoreToEnterRaffle();
 
     uint256 private immutable i_entranceFee;
+    // @dev The duration of the lottery in seconds
+    uint256 private immutable i_interval;
+    // What data structure should we use to track players?
+    address payable[] private s_players;
+    uint256 private s_lastTimeStamp;
 
-    constructor(uint256 entranceFee) {
+    /* Events */
+    event RaffleEntered(address indexed player);
+
+    constructor(uint256 entranceFee, uint256 interval) {
         i_entranceFee = entranceFee;
+        i_interval = interval;
+        s_lastTimeStamp = block.timestamp;
     }
 
-    function enterRaffle() public payable {
+    function enterRaffle() external payable {
         /* Old versions; conditional version is also an old version
         require(msg.value >= i_entranceFee, "Not enough ETH sent!");
         */
@@ -54,10 +62,22 @@ contract Raffle {
         if (msg.value < i_entranceFee) {
             Raffle__SendMoreToEnterRaffle();
         } 
+        s_players.push(payable(msg.sender));
+        // Update a storage variable when updating a storage event.
+        // 1. Makes migration easier
+        // 2. Makes front end "indexing" easier
+        emit RaffleEntered(msg.sender);
     }
 
-    function pickWinner() public{
-
+    /* 
+        1. Get a random number
+        2. Use a random nunmber to pick a player
+        3. Be automatically called
+    */
+    function pickWinner() external {
+        if((block.timestamp - s_lastTimeStamp) < i_interval) {
+            revert();
+        }
     }
 
     /* Getter Functions */
